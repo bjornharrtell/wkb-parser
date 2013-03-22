@@ -1,0 +1,52 @@
+<html>
+<head>
+    <script>
+        var oReq = new XMLHttpRequest();
+        oReq.open("GET", "test.wkb", true);
+        oReq.responseType = "arraybuffer";
+        
+        var endianness;
+        
+        function parsePoints(dataView, offset) {
+            var numPoints = dataView.getUint32(offset, endianness); offset += 4;
+            while (numPoints) {
+                var x = dataView.getFloat64(offset, endianness); offset += 8;
+                var y = dataView.getFloat64(offset, endianness); offset += 8;
+                console.log('x: ' + x + ' y: ' + y);
+                numPoints -= 1;
+            }
+        }
+        
+        function parseWKB(dataView, offset) {
+            endianness = dataView.getUint8(offset) ? true : false; offset += 1;
+            var type = dataView.getUint32(offset, endianness); offset += 4;
+            switch (type) {
+                case 3: 
+                    var rings = dataView.getUint32(offset, endianness); offset += 4;
+                    while (rings) {
+                        parsePoints(dataView, offset);
+                        rings -=1;
+                    }
+                    break;
+                case 6:
+                    var polygons = dataView.getUint32(offset, endianness); offset += 4;
+                    while (polygons) {
+                        parseWKB(dataView, offset);
+                        polygons -= 1;
+                    }
+                    break;
+            }
+        }
+         
+        oReq.onload = function (oEvent) {
+          var arrayBuffer = oReq.response;
+          parseWKB(new DataView(arrayBuffer), 0);
+        };
+         
+        oReq.send(null);
+    </script>
+</head>
+<body>
+Moo
+</body>
+</html>
